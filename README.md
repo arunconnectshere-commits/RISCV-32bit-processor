@@ -35,7 +35,7 @@ It includes:
 - Control/branch hazard handling
 - Separate branch comparison logic
 
-![Pipelined Architecture](docs/pipelined/architecture.png)
+![Pipelined Architecture](docs/pipelined/architecture_schematic.png)
 
 A high-resolution version is available at [`docs/pipelined/architecture.pdf`](docs/pipelined/architecture_schematic_high_res.pdf).
 
@@ -84,7 +84,7 @@ Both processor architectures were synthesized using Xilinx Vivado. Timing analys
 
 | Metric | Single-Cycle | 5-Stage Pipelined |
 |---|---:|---:|
-| LUT | 842 | 1082 |
+| LUT | 842 | 913 |
 | Flip-Flops | 32 | 504 |
 | Distributed RAM LUTs | 48 | 48 |
 | WNS | -1.300 ns | +0.501 ns |
@@ -112,6 +112,54 @@ The pipelined processor initially failed timing significantly. The violation was
 | After removing MUL | -3.300 ns |
 | After introducing a separate branch comparator | -0.169 ns |
 | After optimizing comparator selection using Boolean logic | +0.501 ns |
+### Separate Branch Comparator
+
+To reduce the critical path through the main ALU, branch comparison was moved into dedicated comparator logic in the EX stage.
+
+```verilog
+// EX Stage: Fast Branch Comparator Logic
+
+// Inputs to branch comparison
+wire [31:0] cmp_a = alu_a;
+wire [31:0] cmp_b = forwarded_rs2;
+
+// Subtraction result for magnitude comparison
+wire [31:0] cmp_sub_result = cmp_a - cmp_b;
+
+// Equality
+wire eq = ~|(cmp_a ^ cmp_b);
+
+// Sign comparison
+wire signs_differ = cmp_a[31] ^ cmp_b[31];
+
+// Signed less-than: BLT / BGE
+wire slt = signs_differ ? cmp_a[31] : cmp_sub_result[31];
+
+// Unsigned less-than: BLTU / BGEU
+wire ult = signs_differ ? cmp_b[31] : cmp_sub_result[31];
+
+// Select comparison result
+reg cmp_out;
+
+always @(*) begin
+    case (id_ex_funct3[2:1])
+        2'b00:   cmp_out = eq;   // BEQ / BNE
+        2'b10:   cmp_out = slt;  // BLT / BGE
+        2'b11:   cmp_out = ult;  // BLTU / BGEU
+        default: cmp_out = 1'b0;
+    endcase
+end
+
+// Invert for BNE, BGE, and BGEU using funct3[0]
+wire branch_condition = cmp_out ^ id_ex_funct3[0];
+
+// Final branch decision
+wire pcSrc = id_ex_branch && branch_condition;
+```
+
+The comparator handles all six conditional branch instructions: `BEQ`, `BNE`, `BLT`, `BGE`, `BLTU`, and `BGEU`.
+
+Separating branch comparison from the main ALU reduced the timing-critical logic. The subsequent Boolean optimization of comparator selection further improved the post-synthesis WNS from **-0.169 ns to +0.501 ns**.
 
 **Final result:** WNS = +0.501 ns, TNS = 0 ns, 0 failing endpoints, under a 10 ns clock constraint.
 

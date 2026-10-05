@@ -2,7 +2,7 @@
 
 | Metric | Single-Cycle | 5-Stage Pipelined |
 |---|---:|---:|
-| LUT | 842 | 1082 |
+| LUT | 842 | 913 |
 | FF | 32 | 504 |
 | Distributed RAM LUT | 48 | 48 |
 | WNS | -1.300 ns | **+0.501 ns** |
