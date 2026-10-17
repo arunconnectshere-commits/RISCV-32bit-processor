@@ -167,7 +167,7 @@ Separating branch comparison from the main ALU reduced the timing-critical logic
 
 The pipelined implementation closes timing where the single-cycle design does not, at the cost of additional resources:
 
-- **LUTs:** 842 → 1082
+- **LUTs:** 842 → 913
 - **Flip-Flops:** 32 → 504
 - **Distributed RAM LUTs:** unchanged at 48
 - **Timing:** single-cycle fails timing under the 10 ns constraint (WNS = -1.300 ns, 100 failing endpoints); the pipelined design meets timing (WNS = +0.501 ns, 0 failing endpoints)
