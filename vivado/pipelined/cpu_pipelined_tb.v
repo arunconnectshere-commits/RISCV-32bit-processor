@@ -50,7 +50,6 @@ module CPU_TB;
     // =========================================================================
     // CPU
     // =========================================================================
-    reg clk;
 
 
     CPU DUT (
@@ -242,111 +241,99 @@ initial begin
     instruction_Memory.memory[117] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - B4 SH/LH half_position=upper
     instruction_Memory.memory[118] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
     instruction_Memory.memory[119] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - B4 SH/LH half_position=upper
-    instruction_Memory.memory[120] = 32'h02208BB3; // MUL x23, x1, x2  -- C1: 5*3 = 15
-    instruction_Memory.memory[121] = 32'h00FBCB93; // XORI x23,x23,15  -- C1: diff
-    instruction_Memory.memory[122] = 32'h000B8663; // BEQ x23,x0,+12  -- C1 MUL 5*3=15 : assert zero
-    instruction_Memory.memory[123] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - C1 MUL 5*3=15
-    instruction_Memory.memory[124] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[125] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - C1 MUL 5*3=15
-    instruction_Memory.memory[126] = 32'h02260BB3; // MUL x23, x12, x2  -- C2: -8*3 = -24
-    instruction_Memory.memory[127] = 32'hFE8BCB93; // XORI x23,x23,-24  -- C2: diff
-    instruction_Memory.memory[128] = 32'h000B8663; // BEQ x23,x0,+12  -- C2 MUL -8*3=-24 : assert zero
-    instruction_Memory.memory[129] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - C2 MUL -8*3=-24
-    instruction_Memory.memory[130] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[131] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - C2 MUL -8*3=-24
-    instruction_Memory.memory[132] = 32'h00500B93; // ADDI x23,x0,5  -- LOOP SETUP: counter = 5
-    instruction_Memory.memory[133] = 32'h00000E93; // ADDI x29,x0,0  -- LOOP SETUP: iter_count = 0
-    instruction_Memory.memory[134] = 32'h001E8E93; // ADDI x29,x29,1  -- LOOP: iter_count++
-    instruction_Memory.memory[135] = 32'hFFFB8B93; // ADDI x23,x23,-1  -- LOOP: counter--
-    instruction_Memory.memory[136] = 32'hFE0B9CE3; // BNE x23,x0,-8  -- LOOP: branch back if counter!=0
-    instruction_Memory.memory[137] = 32'h000B8663; // BEQ x23,x0,+12  -- D1 loop exit counter == 0 : assert zero
-    instruction_Memory.memory[138] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - D1 loop exit counter == 0
-    instruction_Memory.memory[139] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[140] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - D1 loop exit counter == 0
-    instruction_Memory.memory[141] = 32'h005ECE93; // XORI x29,x29,5  -- LOOP: diff (expect exactly 5 iterations)
-    instruction_Memory.memory[142] = 32'h000E8663; // BEQ x29,x0,+12  -- D2 loop ran exactly 5 iterations : assert zero
-    instruction_Memory.memory[143] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - D2 loop ran exactly 5 iterations
-    instruction_Memory.memory[144] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[145] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - D2 loop ran exactly 5 iterations
-    instruction_Memory.memory[146] = 32'h25400B93; // ADDI x23,x0,596  -- E1 JALR rd=x29 : target addr (even)
-    instruction_Memory.memory[147] = 32'h001B8EE7; // JALR x29,1(x23)  -- E1 JALR rd=x29 : sum ODD -> must mask bit0
-    instruction_Memory.memory[148] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E1 JALR rd=x29
-    instruction_Memory.memory[149] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E1 JALR rd=x29
-    instruction_Memory.memory[150] = 32'h250ECE93; // XORI x29,x29,592  -- E1 link check: diff
-    instruction_Memory.memory[151] = 32'h000E8663; // BEQ x29,x0,+12  -- E1 JALR link value (rd=pc+4) : assert zero
-    instruction_Memory.memory[152] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E1 JALR link value (rd=pc+4)
+    instruction_Memory.memory[120] = 32'h00500B93; // ADDI x23,x0,5  -- LOOP SETUP: counter = 5
+    instruction_Memory.memory[121] = 32'h00000E93; // ADDI x29,x0,0  -- LOOP SETUP: iter_count = 0
+    instruction_Memory.memory[122] = 32'h001E8E93; // ADDI x29,x29,1  -- LOOP: iter_count++
+    instruction_Memory.memory[123] = 32'hFFFB8B93; // ADDI x23,x23,-1  -- LOOP: counter--
+    instruction_Memory.memory[124] = 32'hFE0B9CE3; // BNE x23,x0,-8  -- LOOP: branch back if counter!=0
+    instruction_Memory.memory[125] = 32'h000B8663; // BEQ x23,x0,+12  -- D1 loop exit counter == 0 : assert zero
+    instruction_Memory.memory[126] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - D1 loop exit counter == 0
+    instruction_Memory.memory[127] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[128] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - D1 loop exit counter == 0
+    instruction_Memory.memory[129] = 32'h005ECE93; // XORI x29,x29,5  -- LOOP: diff (expect exactly 5 iterations)
+    instruction_Memory.memory[130] = 32'h000E8663; // BEQ x29,x0,+12  -- D2 loop ran exactly 5 iterations : assert zero
+    instruction_Memory.memory[131] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - D2 loop ran exactly 5 iterations
+    instruction_Memory.memory[132] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[133] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - D2 loop ran exactly 5 iterations
+    instruction_Memory.memory[134] = 32'h22400B93; // ADDI x23,x0,548  -- E1 JALR rd=x29 : target addr (even)
+    instruction_Memory.memory[135] = 32'h001B8EE7; // JALR x29,1(x23)  -- E1 JALR rd=x29 : sum ODD -> must mask bit0
+    instruction_Memory.memory[136] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E1 JALR rd=x29
+    instruction_Memory.memory[137] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E1 JALR rd=x29
+    instruction_Memory.memory[138] = 32'h220ECE93; // XORI x29,x29,544  -- E1 link check: diff
+    instruction_Memory.memory[139] = 32'h000E8663; // BEQ x29,x0,+12  -- E1 JALR link value (rd=pc+4) : assert zero
+    instruction_Memory.memory[140] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E1 JALR link value (rd=pc+4)
+    instruction_Memory.memory[141] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[142] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E1 JALR link value (rd=pc+4)
+    instruction_Memory.memory[143] = 32'h24800B93; // ADDI x23,x0,584  -- E2 JALR rd=x0 (ret-style) : target addr (even)
+    instruction_Memory.memory[144] = 32'h001B8067; // JALR x0,1(x23)  -- E2 JALR rd=x0 (ret-style) : sum ODD -> must mask bit0
+    instruction_Memory.memory[145] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E2 JALR rd=x0 (ret-style)
+    instruction_Memory.memory[146] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E2 JALR rd=x0 (ret-style)
+    instruction_Memory.memory[147] = 32'h00800EEF; // JAL x29,+8  -- F1 JAL rd=x29 : forward jump
+    instruction_Memory.memory[148] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F1 JAL rd=x29
+    instruction_Memory.memory[149] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F1 JAL rd=x29
+    instruction_Memory.memory[150] = 32'h250ECE93; // XORI x29,x29,592  -- F1 link check: diff
+    instruction_Memory.memory[151] = 32'h000E8663; // BEQ x29,x0,+12  -- F1 JAL link value (rd=pc+4) : assert zero
+    instruction_Memory.memory[152] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F1 JAL link value (rd=pc+4)
     instruction_Memory.memory[153] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[154] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E1 JALR link value (rd=pc+4)
-    instruction_Memory.memory[155] = 32'h27800B93; // ADDI x23,x0,632  -- E2 JALR rd=x0 (ret-style) : target addr (even)
-    instruction_Memory.memory[156] = 32'h001B8067; // JALR x0,1(x23)  -- E2 JALR rd=x0 (ret-style) : sum ODD -> must mask bit0
-    instruction_Memory.memory[157] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - E2 JALR rd=x0 (ret-style)
-    instruction_Memory.memory[158] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - E2 JALR rd=x0 (ret-style)
-    instruction_Memory.memory[159] = 32'h00800EEF; // JAL x29,+8  -- F1 JAL rd=x29 : forward jump
-    instruction_Memory.memory[160] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F1 JAL rd=x29
-    instruction_Memory.memory[161] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F1 JAL rd=x29
-    instruction_Memory.memory[162] = 32'h280ECE93; // XORI x29,x29,640  -- F1 link check: diff
-    instruction_Memory.memory[163] = 32'h000E8663; // BEQ x29,x0,+12  -- F1 JAL link value (rd=pc+4) : assert zero
-    instruction_Memory.memory[164] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F1 JAL link value (rd=pc+4)
-    instruction_Memory.memory[165] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[166] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F1 JAL link value (rd=pc+4)
-    instruction_Memory.memory[167] = 32'h0080006F; // JAL x0,+8  -- F2 JAL rd=x0 (unconditional jump idiom) : forward jump
-    instruction_Memory.memory[168] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F2 JAL rd=x0 (unconditional jump idiom)
-    instruction_Memory.memory[169] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F2 JAL rd=x0 (unconditional jump idiom)
-    instruction_Memory.memory[170] = 32'h12345BB7; // LUI x23, 0x12345  -- x23 = 0x12345000 (REAL TEST)
-    instruction_Memory.memory[171] = 32'h00001E97; // AUIPC x29, 0x00001  -- x29 = pc+0x1000 (REAL TEST)
-    instruction_Memory.memory[172] = 32'hABCDE037; // LUI x0, 0xABCDE  -- x0-write attempt
-    instruction_Memory.memory[173] = 32'h00001017; // AUIPC x0, 0x00001  -- x0-write attempt
-    instruction_Memory.memory[174] = 32'h00108663; // BEQ  x1,x1, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[154] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F1 JAL link value (rd=pc+4)
+    instruction_Memory.memory[155] = 32'h0080006F; // JAL x0,+8  -- F2 JAL rd=x0 (unconditional jump idiom) : forward jump
+    instruction_Memory.memory[156] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL - F2 JAL rd=x0 (unconditional jump idiom)
+    instruction_Memory.memory[157] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS - F2 JAL rd=x0 (unconditional jump idiom)
+    instruction_Memory.memory[158] = 32'h12345BB7; // LUI x23, 0x12345  -- x23 = 0x12345000 (REAL TEST)
+    instruction_Memory.memory[159] = 32'h00001E97; // AUIPC x29, 0x00001  -- x29 = pc+0x1000 (REAL TEST)
+    instruction_Memory.memory[160] = 32'hABCDE037; // LUI x0, 0xABCDE  -- x0-write attempt
+    instruction_Memory.memory[161] = 32'h00001017; // AUIPC x0, 0x00001  -- x0-write attempt
+    instruction_Memory.memory[162] = 32'h00108663; // BEQ  x1,x1, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[163] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
+    instruction_Memory.memory[164] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[165] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
+    instruction_Memory.memory[166] = 32'h00209663; // BNE  x1,x2, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[167] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
+    instruction_Memory.memory[168] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[169] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
+    instruction_Memory.memory[170] = 32'h00264663; // BLT  x12,x2, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[171] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
+    instruction_Memory.memory[172] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
+    instruction_Memory.memory[173] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
+    instruction_Memory.memory[174] = 32'h0020D663; // BGE  x1,x2, +12  -- taken -> skip FAIL, land on PASS
     instruction_Memory.memory[175] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
     instruction_Memory.memory[176] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
     instruction_Memory.memory[177] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[178] = 32'h00209663; // BNE  x1,x2, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[178] = 32'h00116663; // BLTU x2,x1, +12  -- taken -> skip FAIL, land on PASS
     instruction_Memory.memory[179] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
     instruction_Memory.memory[180] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
     instruction_Memory.memory[181] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[182] = 32'h00264663; // BLT  x12,x2, +12  -- taken -> skip FAIL, land on PASS
+    instruction_Memory.memory[182] = 32'h0020F663; // BGEU x1,x2, +12  -- taken -> skip FAIL, land on PASS
     instruction_Memory.memory[183] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
     instruction_Memory.memory[184] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
     instruction_Memory.memory[185] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[186] = 32'h0020D663; // BGE  x1,x2, +12  -- taken -> skip FAIL, land on PASS
-    instruction_Memory.memory[187] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
-    instruction_Memory.memory[188] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[189] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[190] = 32'h00116663; // BLTU x2,x1, +12  -- taken -> skip FAIL, land on PASS
-    instruction_Memory.memory[191] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
-    instruction_Memory.memory[192] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[193] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[194] = 32'h0020F663; // BGEU x1,x2, +12  -- taken -> skip FAIL, land on PASS
-    instruction_Memory.memory[195] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (skipped if branch works)
-    instruction_Memory.memory[196] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of PASS
-    instruction_Memory.memory[197] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly taken)
-    instruction_Memory.memory[198] = 32'h00208663; // BEQ  x1,x2, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[186] = 32'h00208663; // BEQ  x1,x2, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[187] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
+    instruction_Memory.memory[188] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
+    instruction_Memory.memory[189] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
+    instruction_Memory.memory[190] = 32'h00109663; // BNE  x1,x1, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[191] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
+    instruction_Memory.memory[192] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
+    instruction_Memory.memory[193] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
+    instruction_Memory.memory[194] = 32'h00C14663; // BLT  x2,x12, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[195] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
+    instruction_Memory.memory[196] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
+    instruction_Memory.memory[197] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
+    instruction_Memory.memory[198] = 32'h00265663; // BGE  x12,x2, +12  -- not taken -> fall through to PASS
     instruction_Memory.memory[199] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
     instruction_Memory.memory[200] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
     instruction_Memory.memory[201] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[202] = 32'h00109663; // BNE  x1,x1, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[202] = 32'h0020E663; // BLTU x1,x2, +12  -- not taken -> fall through to PASS
     instruction_Memory.memory[203] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
     instruction_Memory.memory[204] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
     instruction_Memory.memory[205] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[206] = 32'h00C14663; // BLT  x2,x12, +12  -- not taken -> fall through to PASS
+    instruction_Memory.memory[206] = 32'h00117663; // BGEU x2,x1, +12  -- not taken -> fall through to PASS
     instruction_Memory.memory[207] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
     instruction_Memory.memory[208] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
     instruction_Memory.memory[209] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[210] = 32'h00265663; // BGE  x12,x2, +12  -- not taken -> fall through to PASS
-    instruction_Memory.memory[211] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
-    instruction_Memory.memory[212] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
-    instruction_Memory.memory[213] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[214] = 32'h0020E663; // BLTU x1,x2, +12  -- not taken -> fall through to PASS
-    instruction_Memory.memory[215] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
-    instruction_Memory.memory[216] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
-    instruction_Memory.memory[217] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[218] = 32'h00117663; // BGEU x2,x1, +12  -- not taken -> fall through to PASS
-    instruction_Memory.memory[219] = 32'h001F8F93; // ADDI x31,x31,1  -- PASS (executed if branch correctly NOT taken)
-    instruction_Memory.memory[220] = 32'h00000463; // BEQ x0,x0,+8  -- unconditional skip of FAIL
-    instruction_Memory.memory[221] = 32'h001F0F13; // ADDI x30,x30,1  -- FAIL (only hit if branch incorrectly taken)
-    instruction_Memory.memory[222] = 32'h07B00013; // ADDI x0,x0,123  -- x0 must stay 0
-    instruction_Memory.memory[223] = 32'h00000013; // NOP
-    instruction_Memory.memory[224] = 32'h00000013; // NOP
+    instruction_Memory.memory[210] = 32'h07B00013; // ADDI x0,x0,123  -- x0 must stay 0
+    instruction_Memory.memory[211] = 32'h00000013; // NOP
+    instruction_Memory.memory[212] = 32'h00000013; // NOP
 
 end
 
