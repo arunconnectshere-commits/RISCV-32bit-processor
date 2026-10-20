@@ -45,7 +45,7 @@ Hazard detection and resolution behavior is illustrated below:
 
 ## Supported ISA
 
-The processor implements 37 instructions from the RV32I base integer ISA. `MUL` is not part of the final design. `ECALL` and `EBREAK` are not implemented.
+The processor implements 37 instructions from the RV32I base integer ISA. `MUL` is not part of the final design. `ECALL`, `FENCE` and `EBREAK` are not implemented.
 
 | Type | Instructions |
 |---|---|
@@ -87,10 +87,10 @@ Both processor architectures were synthesized using Xilinx Vivado. Timing analys
 | LUT | 842 | 913 |
 | Flip-Flops | 32 | 504 |
 | Distributed RAM LUTs | 48 | 48 |
-| WNS | -1.300 ns | +0.501 ns |
+| WNS | -0.232 ns | +0.501 ns |
 | TNS | -105.872 ns | 0 ns |
 | Failing Endpoints | 100 | 0 |
-| Fmax* | ~88.5 MHz | ~105.3 MHz |
+| Fmax* | ~97 MHz | ~105.3 MHz |
 
 *Fmax is calculated from the post-synthesis worst-case timing requirement (`1 / (clock period − WNS)`), not a measured or place-and-route/implementation clock frequency.
 
