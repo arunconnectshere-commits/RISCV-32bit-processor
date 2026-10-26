@@ -17,7 +17,7 @@ Each instruction is fetched, decoded, executed, memory-accessed, and written bac
 
 ![Single-Cycle Architecture](docs/single_cycle/architecture_schematic.png)
 
-A high-resolution version is available at [`docs/single_cycle/architecture.pdf`](docs/single_cycle/architecture_schematic_high_res.pdf).
+A high-resolution version is available at [`Higher Resolution PDF`](docs/single_cycle/architecture_schematic_high_res.pdf).
 
 ### 5-Stage Pipeline
 
@@ -37,7 +37,7 @@ It includes:
 
 ![Pipelined Architecture](docs/pipelined/architecture_schematic.png)
 
-A high-resolution version is available at [`docs/pipelined/architecture.pdf`](docs/pipelined/architecture_schematic_high_res.pdf).
+A high-resolution version is available at [`Higher Resolution PDF`](docs/pipelined/architecture_schematic_high_res.pdf).
 
 Hazard detection and resolution behavior is illustrated below:
 
