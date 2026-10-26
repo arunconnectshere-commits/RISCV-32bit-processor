@@ -1,189 +1,200 @@
-# 32-bit RISC-V Processor — Single-Cycle & 5-Stage Pipelined
+# 32-bit RISC-V Processor: Single-Cycle and 5-Stage Pipelined
 
-## Overview
+A 32-bit RV32I processor in Verilog, built in two versions: a single-cycle baseline and a 5-stage pipelined design with data forwarding and hazard handling. Both were verified in simulation, then synthesized in Xilinx Vivado for static timing analysis, critical-path identification and RTL-level timing optimization.
 
-This repository contains a 32-bit RISC-V integer processor implemented and verified in Verilog, in two architectural versions:
+| | Single-Cycle | 5-Stage Pipelined |
+|---|---|---|
+| WNS @ 10 ns (post-synthesis) | -1.300 ns | +0.501 ns |
+| Est. Fmax* | ~88.5 MHz | ~105.3 MHz |
+| Meets 10 ns timing | No | Yes |
 
-1. **Single-cycle processor** — a baseline implementation where each instruction completes in one clock cycle.
-2. **5-stage pipelined processor** — an extension of the single-cycle design into a classic `IF → ID → EX → MEM → WB` pipeline, with data forwarding and hazard handling.
+\*Fmax = 1 / (clock period − WNS), from post-synthesis timing. It is not a post-implementation result.
 
-The project covers RTL implementation of the RISC-V ISA, functional verification in simulation, pipelining with forwarding and hazard resolution, synthesis in Xilinx Vivado, static timing analysis, critical-path identification, and RTL-level timing optimization.
+## Contents
+
+- [Architecture](#architecture)
+- [Design Overview](#design-overview)
+- [Supported ISA](#supported-isa)
+- [Hazard Handling](#hazard-handling)
+- [Verification](#verification)
+- [Synthesis and Timing](#synthesis-and-timing)
+- [RTL Timing Optimization](#rtl-timing-optimization)
+- [Single-Cycle vs. Pipelined](#single-cycle-vs-pipelined)
+- [Limitations and Future Work](#limitations-and-future-work)
+- [Repository Structure](#repository-structure)
+- [Running the Project](#running-the-project)
 
 ## Architecture
 
 ### Single-Cycle
 
-Each instruction is fetched, decoded, executed, memory-accessed, and written back within a single clock cycle.
+Each instruction is fetched, decoded, executed, memory-accessed and written back in one clock cycle. The path from instruction fetch through the ALU and data memory to register write-back sets the clock period.
 
-![Single-Cycle Architecture](docs/single_cycle/architecture_schematic.png)
+![Single-cycle architecture](docs/single_cycle/architecture_schematic.png)
 
-A high-resolution version is available at [`Higher Resolution PDF`](docs/single_cycle/architecture_schematic_high_res.pdf).
+High-resolution version: [`architecture_schematic_high_res.pdf`](docs/single_cycle/architecture_schematic_high_res.pdf)
 
 ### 5-Stage Pipeline
 
-The pipelined processor splits execution into five stages — `IF`, `ID`, `EX`, `MEM`, `WB` — separated by pipeline registers:
+The single-cycle design was extended into an `IF → ID → EX → MEM → WB` pipeline with `IF/ID`, `ID/EX`, `EX/MEM` and `MEM/WB` registers, plus forwarding, hazard detection, and a dedicated branch comparator in EX.
 
-- `IF/ID`
-- `ID/EX`
-- `EX/MEM`
-- `MEM/WB`
+![Pipelined architecture](docs/pipelined/architecture_schematic.png)
 
-It includes:
+High-resolution version: [`architecture_schematic_high_res.pdf`](docs/pipelined/architecture_schematic_high_res.pdf)
 
-- Data forwarding
-- Hazard detection and handling
-- Control/branch hazard handling
-- Separate branch comparison logic
+## Design Overview
 
-![Pipelined Architecture](docs/pipelined/architecture_schematic.png)
+Both versions share the same building blocks:
 
-A high-resolution version is available at [`Higher Resolution PDF`](docs/pipelined/architecture_schematic_high_res.pdf).
+| Block | Module | Role |
+|---|---|---|
+| Control unit | `CONTROL_UNIT1` | Decodes opcode/funct fields into ALU, memory, write-back and jump controls |
+| ALU | `ALU` | Arithmetic, logic, shifts, compares, LUI pass-through; also drives the zero/less flags used for branches in the single-cycle design |
+| Register file | `REG_FILE_PIPELINED` | 32×32 registers, two read ports, x0 hardwired to 0, write-through bypass |
+| Immediate generator | `IMMEDIATE_GENERATOR` | I, S, B, U and J immediates with sign extension |
+| PC logic | `PROGRAM_COUNTER`, `PC_MUX_PIPELINED` | PC register and next-PC selection (sequential, branch, JAL, JALR, stall) |
+| Load/store interface | `DATA_MEMORY`, `LOAD_DATA_UNIT` | Byte, halfword and word stores with byte-lane merging; sign/zero-extended loads |
+| Instruction memory | `INSTRUCTION_MEMORY` | Word-addressed ROM |
 
-Hazard detection and resolution behavior is illustrated below:
-
-![Hazard Handling](docs/pipelined/hazard_handling.png)
+The pipelined version adds `IF_ID`, `ID_EX`, `EX_MEM`, `MEM_WB`, `FORWARDING_UNIT` and `HAZARD_UNIT`.
 
 ## Supported ISA
 
-The processor implements 37 instructions from the RV32I base integer ISA. `MUL` is not part of the final design. `ECALL`, `FENCE` and `EBREAK` are not implemented.
+37 instructions from the RV32I base integer ISA:
 
 | Type | Instructions |
 |---|---|
-| R-Type | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU |
-| I-Type (ALU/Immediate) | ADDI, ANDI, ORI, XORI, SLTI, SLTIU, SLLI, SRLI, SRAI |
-| I-Type (Load) | LB, LH, LW, LBU, LHU |
-| I-Type (Jump) | JALR |
-| S-Type | SB, SH, SW |
-| B-Type | BEQ, BNE, BLT, BGE, BLTU, BGEU |
-| U-Type | LUI, AUIPC |
-| J-Type | JAL |
+| R-type | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU |
+| I-type (ALU) | ADDI, ANDI, ORI, XORI, SLTI, SLTIU, SLLI, SRLI, SRAI |
+| I-type (load) | LB, LH, LW, LBU, LHU |
+| I-type (jump) | JALR |
+| S-type | SB, SH, SW |
+| B-type | BEQ, BNE, BLT, BGE, BLTU, BGEU |
+| U-type | LUI, AUIPC |
+| J-type | JAL |
+
+**Not implemented:** `FENCE`, `ECALL`, `EBREAK`, and the M extension (an early pipelined version included `MUL`, which was removed to improve timing).
+
+## Hazard Handling
+
+| Hazard | Mechanism | Cost |
+|---|---|---|
+| Data (producer in EX/MEM or MEM/WB) | Forwarding into the ALU operand muxes | 0 cycles |
+| Data (producer in WB, consumer in ID) | Register-file write-through | 0 cycles |
+| Load-use | Stall PC and `IF/ID`, bubble into `ID/EX` | 1 cycle |
+| Control (taken branch, JAL, JALR) | Resolved in EX; `IF/ID` and `ID/EX` flushed | 2 cycles |
+
+Branches use static not-taken prediction.
+
+![Hazard handling](docs/pipelined/hazard_handling.png)
 
 ## Verification
 
-Both processors were functionally verified using Verilog simulation.
+Both processors were verified with Icarus Verilog and GTKWave.
 
-**Tools:** Verilog, Icarus Verilog, GTKWave
+- **Testbenches:** `simulation/single_cycle/` and `simulation/pipelined/`
+- **Test program:** TODO: list what it covers (instruction classes, byte/half loads and stores, branches taken and not taken, JAL/JALR)
+- **Hazard coverage:** TODO: RAW at distance 1, 2 and 3, load-use, link-register read right after JAL/JALR
+- **Pass criteria:** TODO: for example, final register and memory contents match expected values
 
-Simulation RTL and testbench environments are organized under:
+![Single-cycle waveform](docs/single_cycle/simulation_waveform.png)
+![Pipelined waveform](docs/pipelined/simulation_waveform.png)
 
-```
-simulation/
-├── single_cycle/
-└── pipelined/
-```
+## Synthesis and Timing
 
-Each directory contains the simulation-specific RTL/testbench files used to exercise and verify the corresponding processor version. Representative simulation waveforms are documented in `docs/single_cycle/simulation_waveform.png` and `docs/pipelined/simulation_waveform.png`.
+Both designs were synthesized in Xilinx Vivado under a 10 ns clock constraint.
 
-![Single-Cycle Simulation Waveform](docs/single_cycle/simulation_waveform.png)
-
-![Pipelined Simulation Waveform](docs/pipelined/simulation_waveform.png)
-
-## Synthesis & Timing Analysis
-
-Both processor architectures were synthesized using Xilinx Vivado. Timing analysis was performed under a 10 ns clock constraint. The results below are **post-synthesis** timing and utilization figures, not place-and-route/implementation results.
+> **These are post-synthesis results, not post-place-and-route.** Synthesis uses estimated net delays, so implementation numbers will differ.
 
 | Metric | Single-Cycle | 5-Stage Pipelined |
-|---|---:|---:|
-| LUT | 842 | 913 |
-| Flip-Flops | 32 | 504 |
+|---|---|---|
+| LUTs | 842 | TODO: 913 or 1082, verify against the utilization report |
+| Flip-flops | 32 | 504 |
 | Distributed RAM LUTs | 48 | 48 |
-| WNS | -0.232 ns | +0.501 ns |
+| WNS | -1.300 ns | +0.501 ns |
 | TNS | -105.872 ns | 0 ns |
-| Failing Endpoints | 100 | 0 |
-| Fmax* | ~97 MHz | ~105.3 MHz |
+| Failing endpoints | 100 | 0 |
+| Fmax* | ~88.5 MHz | ~105.3 MHz |
 
-*Fmax is calculated from the post-synthesis worst-case timing requirement (`1 / (clock period − WNS)`), not a measured or place-and-route/implementation clock frequency.
+**Setup used:**
 
-![Single-Cycle Timing Summary](docs/single_cycle/timing_summary_post_synthesis.png)
+- Part: TODO (for example `xc7a35tcpg236-1`)
+- Vivado version: TODO
+- Synthesis mode: TODO (default or out-of-context)
+- I/O constraints: TODO (were input/output delays set?)
+- Memories: TODO (inside the timed design or external to `CPU`?). If external, the single-cycle path excludes instruction fetch and data-memory access, so its WNS understates the true single-cycle cycle time.
 
-![Pipelined Timing Summary](docs/pipelined/timing_summary_post_synthesis.png)
-
-![Single-Cycle Utilization Summary](docs/single_cycle/utilization_summary_post_synthesis.png)
-
-![Pipelined Utilization Summary](docs/pipelined/utilization_summary_post_synthesis.png)
+![Single-cycle timing](docs/single_cycle/timing_summary_post_synthesis.png)
+![Pipelined timing](docs/pipelined/timing_summary_post_synthesis.png)
+![Single-cycle utilization](docs/single_cycle/utilization_summary_post_synthesis.png)
+![Pipelined utilization](docs/pipelined/utilization_summary_post_synthesis.png)
 
 ## RTL Timing Optimization
 
-The pipelined processor initially failed timing significantly. The violation was resolved through a sequence of RTL changes, tracked via post-synthesis WNS at each step:
+The pipelined design first failed timing badly. Post-synthesis WNS at each step:
 
-| Stage | WNS |
-|---|---:|
-| Original pipelined CPU + MUL | -8.901 ns |
-| After removing MUL | -3.300 ns |
-| After introducing a separate branch comparator | -0.169 ns |
-| After optimizing comparator selection using Boolean logic | +0.501 ns |
-### Separate Branch Comparator
+| Step | WNS |
+|---|---|
+| Original pipelined CPU with MUL | -8.901 ns |
+| Removed MUL | -3.300 ns |
+| Added a separate branch comparator | -0.169 ns |
+| Restructured comparator selection (select on `funct3[2:1]`, invert with `funct3[0]`) | +0.501 ns |
 
-To reduce the critical path through the main ALU, branch comparison was moved into dedicated comparator logic in the EX stage.
+### Branch Comparator
+
+Branch decisions no longer go through the main ALU. A dedicated comparator in EX computes equality, signed less-than and unsigned less-than, selects one with `funct3[2:1]`, and inverts it with `funct3[0]` for BNE, BGE and BGEU:
 
 ```verilog
-// EX Stage: Fast Branch Comparator Logic
-
-// Inputs to branch comparison
 wire [31:0] cmp_a = alu_a;
 wire [31:0] cmp_b = forwarded_rs2;
-
-// Subtraction result for magnitude comparison
 wire [31:0] cmp_sub_result = cmp_a - cmp_b;
 
-// Equality
-wire eq = ~|(cmp_a ^ cmp_b);
-
-// Sign comparison
+wire eq           = ~|(cmp_a ^ cmp_b);
 wire signs_differ = cmp_a[31] ^ cmp_b[31];
+wire slt = signs_differ ? cmp_a[31] : cmp_sub_result[31];  // BLT / BGE
+wire ult = signs_differ ? cmp_b[31] : cmp_sub_result[31];  // BLTU / BGEU
 
-// Signed less-than: BLT / BGE
-wire slt = signs_differ ? cmp_a[31] : cmp_sub_result[31];
-
-// Unsigned less-than: BLTU / BGEU
-wire ult = signs_differ ? cmp_b[31] : cmp_sub_result[31];
-
-// Select comparison result
 reg cmp_out;
-
 always @(*) begin
     case (id_ex_funct3[2:1])
-        2'b00:   cmp_out = eq;   // BEQ / BNE
-        2'b10:   cmp_out = slt;  // BLT / BGE
-        2'b11:   cmp_out = ult;  // BLTU / BGEU
+        2'b00:   cmp_out = eq;    // BEQ / BNE
+        2'b10:   cmp_out = slt;   // BLT / BGE
+        2'b11:   cmp_out = ult;   // BLTU / BGEU
         default: cmp_out = 1'b0;
     endcase
 end
 
-// Invert for BNE, BGE, and BGEU using funct3[0]
 wire branch_condition = cmp_out ^ id_ex_funct3[0];
-
-// Final branch decision
 wire pcSrc = id_ex_branch && branch_condition;
 ```
 
-The comparator handles all six conditional branch instructions: `BEQ`, `BNE`, `BLT`, `BGE`, `BLTU`, and `BGEU`.
+After this change, the critical path is TODO: name it (for example forwarding → comparator → `pcSrc` → PC mux).
 
-Separating branch comparison from the main ALU reduced the timing-critical logic. The subsequent Boolean optimization of comparator selection further improved the post-synthesis WNS from **-0.169 ns to +0.501 ns**.
+## Single-Cycle vs. Pipelined
 
-**Final result:** WNS = +0.501 ns, TNS = 0 ns, 0 failing endpoints, under a 10 ns clock constraint.
+- **Timing:** the single-cycle design misses 10 ns (WNS -1.300 ns, 100 failing endpoints). The pipelined design meets it (WNS +0.501 ns, 0 failing endpoints).
+- **Flip-flops:** 32 → 504, from the four pipeline registers.
+- **LUTs:** 842 → TODO.
+- **Distributed RAM:** unchanged at 48 LUTs.
 
-## Single-Cycle vs. Pipelined Comparison
+Fmax is not the same as performance. Load-use stalls and branch flushes push the pipelined design's CPI above 1. See `docs/comparison.md` for the side-by-side summary.
 
-The pipelined implementation closes timing where the single-cycle design does not, at the cost of additional resources:
+## Limitations and Future Work
 
-- **LUTs:** 842 → 913
-- **Flip-Flops:** 32 → 504
-- **Distributed RAM LUTs:** unchanged at 48
-- **Timing:** single-cycle fails timing under the 10 ns constraint (WNS = -1.300 ns, 100 failing endpoints); the pipelined design meets timing (WNS = +0.501 ns, 0 failing endpoints)
-
-The increase in flip-flop count reflects the pipeline registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) required to carry instruction data, operands, control signals, ALU results, memory data, and write-back state between stages.
-
-A side-by-side summary is documented in [`docs/comparison.md`](docs/comparison.md).
+- Timing is post-synthesis. Post-implementation results are future work.
+- No `FENCE`, `ECALL`, `EBREAK` or M extension.
+- Static not-taken branch prediction with a 2-cycle taken penalty.
+- Verification is directed simulation. Constrained-random testing against a reference model, assertions and hazard coverage would strengthen it.
+- Add a throughput comparison (cycles × clock period) on a benchmark program.
 
 ## Repository Structure
 
 ```
-RISCV_CPU/
+RISCV-32bit-processor/
 ├── README.md
 ├── docs/
-│   ├── pipelined/
 │   ├── single_cycle/
+│   ├── pipelined/
 │   └── comparison.md
 ├── simulation/
 │   ├── single_cycle/
@@ -193,13 +204,22 @@ RISCV_CPU/
     └── pipelined/
 ```
 
-- `docs/` — architecture diagrams, simulation waveforms, and timing/utilization summaries(post synthesis) for both versions
-- `simulation/` — simulation RTL and testbench environment for each version
-- `vivado/` — Vivado project sources for synthesis and timing analysis of each version
+## Running the Project
+
+```bash
+# TODO: confirm directory and file names
+cd simulation/pipelined
+iverilog -g2012 -o cpu_sim *.v
+vvp cpu_sim
+gtkwave dump.vcd
+```
+
+The memory initialization files use relative paths (for example `sim/program.hex`), so run from the directory the testbench expects. TODO: state it.
 
 ## Tools
 
-- Verilog
-- Icarus Verilog
-- GTKWave
-- Xilinx Vivado
+Verilog · Icarus Verilog · GTKWave · Xilinx Vivado
+
+## License
+
+TODO: add a `LICENSE` file.
