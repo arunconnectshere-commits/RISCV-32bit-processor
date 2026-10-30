@@ -1,6 +1,19 @@
 module CPU(
     input clk,
-    input reset
+    input reset,
+    
+    // DATA INTERFACE
+    output wire [31:0] dmem_wd,
+    input wire [31:0] dmem_rd,
+    output wire [31:0] dmem_addr,
+    output wire        dmem_mr,
+    output wire        dmem_mw,
+    output wire [1:0]  dmem_ds,
+    
+    // INSTRUCTION INTERFACE
+    input wire [31:0] imem_instr,
+    output wire [31:0] imem_pc
+
 );
 
 // pc MUX
@@ -8,8 +21,7 @@ wire [31:0] pc_plus_4;
 wire [31:0] branch_target;
 wire [31:0] jalr_target;
 wire [31:0] jal_target;
-assign jalr_target = (alu_result & 32'hFFFFFFFE);
-assign jal_target = alu_result;
+
 
 // pc
 wire [31:0] pc;
@@ -37,7 +49,6 @@ wire [31:0] alu_b;
 wire [31:0] alu_result;
 wire zero;
 wire [31:0] alu_a;
-assign alu_a = (auipc||jal) ? pc : rs1_data;
 
 // Register File
 wire [31:0] rs1_data;
@@ -46,15 +57,10 @@ wire [4:0] rs1;
 wire [4:0] rs2;
 wire [4:0] rd;
 
-assign rs1 = instruction[19:15];
-assign rs2 = instruction[24:20];
-assign rd  = instruction[11:7];
 
 // Immediate Generator
 wire [31:0] immediate;
 
-assign pc_plus_4 = pc + 32'd4;
-assign branch_target = pc + immediate;
 
 // Data Memory
 wire mem_read;
@@ -70,6 +76,46 @@ wire [31:0] load_data;
 reg [31:0] write_back_data;
 wire [2:0] funct3;
 
+
+// Branch comparator
+wire [31:0] cmp_a = rs1_data;
+wire [31:0] cmp_b = rs2_data;
+
+// Subtraction for magnitude comparison
+wire [31:0] cmp_sub_result = cmp_a - cmp_b;
+
+// Equality
+wire eq = ~|(cmp_a ^ cmp_b);
+
+// Sign comparison
+wire signs_differ = cmp_a[31] ^ cmp_b[31];
+
+// Signed less-than: BLT / BGE
+wire slt = signs_differ ? cmp_a[31] : cmp_sub_result[31];
+
+// Unsigned less-than: BLTU / BGEU
+wire ult = signs_differ ? cmp_b[31] : cmp_sub_result[31];
+
+// Select comparison result
+reg cmp_out;
+
+always @(*) begin
+    case (funct3[2:1])
+        2'b00:   cmp_out = eq;
+        2'b10:   cmp_out = slt;
+        2'b11:   cmp_out = ult;
+        default: cmp_out = 1'b0;
+    endcase
+end
+
+// Invert for BNE, BGE, and BGEU
+wire branch_condition = cmp_out ^ funct3[0];
+
+// Final branch decision
+wire valid_branch = (funct3[2:1] != 2'b01); // funct3 values 2 and 3 are invalid for branch instruction
+wire branch_taken = branch && valid_branch && branch_condition;
+assign pcSrc = branch_taken;
+    
 always @(*) begin
     case (write_back_select)
         2'b00: write_back_data = alu_result;
@@ -81,6 +127,21 @@ end
 
 assign funct3 = instruction[14:12];
 
+
+assign jalr_target = (alu_result & 32'hFFFFFFFE);
+assign jal_target = alu_result;
+
+assign alu_a = (auipc||jal) ? pc : rs1_data;
+
+assign rs1 = instruction[19:15];
+assign rs2 = instruction[24:20];
+assign rd  = instruction[11:7];
+
+assign pc_plus_4 = pc + 32'd4;
+assign branch_target = pc + immediate;
+
+assign instruction = imem_instr;
+assign imem_pc = pc;
 
 
 // Module Instantiations
@@ -103,29 +164,27 @@ PROGRAM_COUNTER program_Counter(
     .next_pc(next_pc)
 );
 
-INSTRUCTION_MEMORY instruction_Memory(
-    .instruction(instruction),
-    .pc(pc)
-);
 
-CONTROL_UNIT control_Unit(
+CONTROL_UNIT control_Unit (
+
     .instruction(instruction),
-    .zero(zero),
-    .less(less),
-    .less_unsigned(less_unsigned),
+
     .alu_src(alu_src),
     .alu_control(alu_control),
+
     .regWrite(regWrite),
     .branch(branch),
-    .pcSrc(pcSrc),
 
     .mem_write(mem_write),
     .mem_read(mem_read),
+
     .write_back_select(write_back_select),
     .data_size(data_size),
+
     .auipc(auipc),
     .jalr(jalr),
     .jal(jal)
+
 );
 
 REG_FILE reg_File(
@@ -164,16 +223,12 @@ ALU alu(
     .less_unsigned(less_unsigned)
 );
 
-DATA_MEMORY data_Memory(
-    .clk(clk),
-    .write_data(rs2_data),
-    .data_mem_address(alu_result),
-    .mem_read(mem_read),
-    .mem_write(mem_write),
-    .data_size(data_size),
-
-    .read_data(read_data)
-);
+assign dmem_wd = rs2_data;
+assign dmem_addr = alu_result;
+assign dmem_mr = mem_read;
+assign dmem_mw = mem_write;
+assign dmem_ds = data_size;
+assign read_data = dmem_rd;
 
 LOAD_DATA_UNIT load_Data_Unit(
     .read_data(read_data),

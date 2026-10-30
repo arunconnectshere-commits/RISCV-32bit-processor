@@ -1,15 +1,10 @@
 module CONTROL_UNIT(
     input [31:0] instruction,
-    input zero,
-    input less,
-    input less_unsigned,
 
     output reg regWrite,
     output reg branch,
     output reg [3:0] alu_control,
     output reg alu_src,
-    output pcSrc,
-    output reg [2:0] branch_type,
     output reg mem_write,
     output reg mem_read,
     output reg [1:0] data_size,
@@ -23,26 +18,13 @@ wire [6:0] opcode = instruction[6:0];
 wire [2:0] funct3 = instruction[14:12];
 wire [6:0] funct7 = instruction[31:25];
 wire [11:0] imm   = instruction[31:20];
-wire branch_condition;
-
-assign branch_condition =
-       (funct3 == 3'b000) ? zero :
-       (funct3 == 3'b001) ? ~zero :
-       (funct3 == 3'b100) ? less :
-       (funct3 == 3'b101) ? ~less:
-       (funct3 == 3'b110) ? less_unsigned:
-       (funct3 == 3'b111) ? ~less_unsigned:
-       1'b0;
-assign pcSrc = branch && branch_condition;
 
 always @(*) begin
     //default values
     regWrite = 0;
     branch = 0;
     alu_src = 0;
-    // pcSrc = 0;
     alu_control = 4'b0000;
-    branch_type = 3'b111;
     mem_write = 1'b0;
     mem_read = 1'b0;
     data_size = 2'b00;
@@ -112,15 +94,6 @@ always @(*) begin
             // B-type
         branch = 1;
         alu_control = 4'b0001;
-
-            case (funct3)
-                3'b000: branch_type = 3'b000; // BEQ
-                3'b001: branch_type = 3'b001; // BNE
-                3'b100: branch_type = 3'b100; // BLT
-                3'b101: branch_type = 3'b101; // BGE
-                3'b110: branch_type = 3'b110; // BLTU
-                3'b111: branch_type = 3'b111; // BGEU
-            endcase
         end
 
         7'b0100011: begin
