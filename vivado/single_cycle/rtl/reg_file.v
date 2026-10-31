@@ -12,9 +12,9 @@ module REG_FILE(
 );
 
 reg [31:0] registers [0:31];
-
+integer i;
 initial begin
-    for (integer i = 0; i < 32; i = i + 1)
+    for (i = 0; i < 32; i = i + 1)
         registers[i] = 32'd0;
 end
 

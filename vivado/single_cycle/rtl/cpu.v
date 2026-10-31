@@ -13,7 +13,6 @@ module CPU(
     // INSTRUCTION INTERFACE
     input wire [31:0] imem_instr,
     output wire [31:0] imem_pc
-
 );
 
 // pc MUX
@@ -21,7 +20,8 @@ wire [31:0] pc_plus_4;
 wire [31:0] branch_target;
 wire [31:0] jalr_target;
 wire [31:0] jal_target;
-
+assign jalr_target = (alu_result & 32'hFFFFFFFE);
+assign jal_target = alu_result;
 
 // pc
 wire [31:0] pc;
@@ -49,6 +49,7 @@ wire [31:0] alu_b;
 wire [31:0] alu_result;
 wire zero;
 wire [31:0] alu_a;
+assign alu_a = (auipc||jal) ? pc : rs1_data;
 
 // Register File
 wire [31:0] rs1_data;
@@ -57,10 +58,15 @@ wire [4:0] rs1;
 wire [4:0] rs2;
 wire [4:0] rd;
 
+assign rs1 = instruction[19:15];
+assign rs2 = instruction[24:20];
+assign rd  = instruction[11:7];
 
 // Immediate Generator
 wire [31:0] immediate;
 
+assign pc_plus_4 = pc + 32'd4;
+assign branch_target = pc + immediate;
 
 // Data Memory
 wire mem_read;
@@ -112,8 +118,7 @@ end
 wire branch_condition = cmp_out ^ funct3[0];
 
 // Final branch decision
-wire valid_branch = (funct3[2:1] != 2'b01); // funct3 values 2 and 3 are invalid for branch instruction
-wire branch_taken = branch && valid_branch && branch_condition;
+wire branch_taken = branch && branch_condition;
 assign pcSrc = branch_taken;
     
 always @(*) begin
@@ -127,21 +132,6 @@ end
 
 assign funct3 = instruction[14:12];
 
-
-assign jalr_target = (alu_result & 32'hFFFFFFFE);
-assign jal_target = alu_result;
-
-assign alu_a = (auipc||jal) ? pc : rs1_data;
-
-assign rs1 = instruction[19:15];
-assign rs2 = instruction[24:20];
-assign rd  = instruction[11:7];
-
-assign pc_plus_4 = pc + 32'd4;
-assign branch_target = pc + immediate;
-
-assign instruction = imem_instr;
-assign imem_pc = pc;
 
 
 // Module Instantiations
@@ -164,7 +154,8 @@ PROGRAM_COUNTER program_Counter(
     .next_pc(next_pc)
 );
 
-
+assign instruction = imem_instr;
+assign imem_pc = pc;
 CONTROL_UNIT control_Unit (
 
     .instruction(instruction),

@@ -19,11 +19,13 @@ wire [2:0] funct3 = instruction[14:12];
 wire [6:0] funct7 = instruction[31:25];
 wire [11:0] imm   = instruction[31:20];
 
+
 always @(*) begin
     //default values
     regWrite = 0;
     branch = 0;
     alu_src = 0;
+    // pcSrc = 0;
     alu_control = 4'b0000;
     mem_write = 1'b0;
     mem_read = 1'b0;
@@ -94,6 +96,7 @@ always @(*) begin
             // B-type
         branch = 1;
         alu_control = 4'b0001;
+
         end
 
         7'b0100011: begin
@@ -120,6 +123,10 @@ always @(*) begin
                     alu_src = 1;
                     data_size = 2'b10; // word
                 end
+		
+		default: begin
+			// ignore
+		end
             endcase
 
         end
@@ -173,6 +180,10 @@ always @(*) begin
                     alu_src = 1;
                     data_size = 2'b01;
                 end
+		
+		default: begin
+			// ignore
+		end
             endcase
         end
 

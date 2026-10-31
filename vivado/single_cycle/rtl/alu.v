@@ -29,7 +29,6 @@ always @(*) begin
         4'b1000: result = ($signed(A) < $signed(B)) ? 32'd1 : 32'd0; // SLT
         4'b1001: result = (A < B) ? 32'd1 : 32'd0;                   // SLTU
         4'b1010: result = B;                        // LUI
-        4'b1011: result = A*B;                      // MUL
         default: result = 32'b0;
     endcase
 end
